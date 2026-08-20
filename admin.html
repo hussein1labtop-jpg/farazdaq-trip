@@ -133,6 +133,8 @@
   }
   .toast.show{opacity:1;}
 </style>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
 
@@ -192,9 +194,21 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const STORAGE_KEY = 'farazdaq-trip-registrations';
+const firebaseConfig = {
+  apiKey: "AIzaSyCSNh6M0D1tHVwJWaAcI7PN1HZGVlM3D3Y",
+  authDomain: "farazdaq-trip.firebaseapp.com",
+  databaseURL: "https://farazdaq-trip-default-rtdb.firebaseio.com",
+  projectId: "farazdaq-trip",
+  storageBucket: "farazdaq-trip.firebasestorage.app",
+  messagingSenderId: "622183270228",
+  appId: "1:622183270228:web:c24f78c49c6f70acb3aac1"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const regRef = db.ref('registrations');
+
 const ADMIN_PIN = '3070'; // غيّر هذا الرمز — نفسه لازم يتطابق مع أي نسخة أخرى من لوحة الإدارة
-let entries = [];
+let entries = []; // { key, name, phone, ts, paid }
 let currentFilter = 'all';
 
 const lockScreen = document.getElementById('lockScreen');
@@ -236,25 +250,20 @@ document.getElementById('lockBtn').addEventListener('click', () => {
   lockScreen.style.display = 'flex';
   pinInput.value = '';
   pinErr.classList.remove('show');
+  regRef.off('value'); // stop live updates while locked
 });
 
-async function loadEntries(){
+function loadEntries(){
   listContainer.innerHTML = '<div class="loading">...جاري التحميل</div>';
-  try{
-    const result = await window.storage.get(STORAGE_KEY, true);
-    entries = result && result.value ? JSON.parse(result.value) : [];
-  }catch(e){
-    entries = [];
-  }
-  renderList();
-}
-
-async function saveEntries(){
-  try{
-    await window.storage.set(STORAGE_KEY, JSON.stringify(entries), true);
-  }catch(e){
-    showToast('تعذر الحفظ، حاول مرة أخرى');
-  }
+  // live listener - updates automatically whenever a student registers or admin changes something
+  regRef.on('value', (snapshot) => {
+    const data = snapshot.val() || {};
+    entries = Object.keys(data).map(key => ({ key, ...data[key] }));
+    entries.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+    renderList();
+  }, (err) => {
+    listContainer.innerHTML = '<div class="empty">تعذر الاتصال بقاعدة البيانات، تأكد من الإنترنت</div>';
+  });
 }
 
 function renderList(){
@@ -265,7 +274,7 @@ function renderList(){
   statPending.textContent = pendingCount;
 
   const visible = entries
-    .map((e, i) => ({...e, idx: i}))
+    .map((e, i) => ({...e, seat: i+1}))
     .filter(e => currentFilter === 'all' ? true : (currentFilter === 'paid' ? e.paid : !e.paid));
 
   if(visible.length === 0){
@@ -275,14 +284,14 @@ function renderList(){
 
   const html = visible.map((e) => `
     <div class="entry">
-      <div class="seat">${e.idx+1}</div>
+      <div class="seat">${e.seat}</div>
       <div class="info">
         <div class="name">${escapeHtml(e.name)}</div>
         <div class="phone">${escapeHtml(e.phone)}</div>
       </div>
       <span class="badge ${e.paid ? 'paid' : 'pending'}">${e.paid ? 'تم الدفع' : 'قيد الانتظار'}</span>
-      ${!e.paid ? `<button class="pay-btn" data-idx="${e.idx}">تأكيد الدفع</button>` : ''}
-      <button class="del" data-idx="${e.idx}" title="حذف">✕</button>
+      ${!e.paid ? `<button class="pay-btn" data-key="${e.key}">تأكيد الدفع</button>` : ''}
+      <button class="del" data-key="${e.key}" title="حذف">✕</button>
     </div>
   `).join('');
 
@@ -290,22 +299,26 @@ function renderList(){
 
   listContainer.querySelectorAll('.pay-btn').forEach(btn => {
     btn.addEventListener('click', async (ev) => {
-      const idx = parseInt(ev.currentTarget.getAttribute('data-idx'), 10);
-      entries[idx].paid = true;
-      await saveEntries();
-      renderList();
-      showToast('تم تأكيد الدفع');
+      const key = ev.currentTarget.getAttribute('data-key');
+      try{
+        await regRef.child(key).update({ paid: true });
+        showToast('تم تأكيد الدفع');
+      }catch(e){
+        showToast('تعذر الحفظ، حاول مرة أخرى');
+      }
     });
   });
 
   listContainer.querySelectorAll('.del').forEach(btn => {
     btn.addEventListener('click', async (ev) => {
-      const idx = parseInt(ev.currentTarget.getAttribute('data-idx'), 10);
+      const key = ev.currentTarget.getAttribute('data-key');
       if(confirm('حذف هذا الطالب من القائمة؟')){
-        entries.splice(idx, 1);
-        await saveEntries();
-        renderList();
-        showToast('تم الحذف');
+        try{
+          await regRef.child(key).remove();
+          showToast('تم الحذف');
+        }catch(e){
+          showToast('تعذر الحذف، حاول مرة أخرى');
+        }
       }
     });
   });
@@ -320,7 +333,9 @@ document.querySelectorAll('.filters button').forEach(btn => {
   });
 });
 
-document.getElementById('refreshBtn').addEventListener('click', loadEntries);
+document.getElementById('refreshBtn').addEventListener('click', () => {
+  showToast('القائمة تتحدث تلقائياً');
+});
 
 document.getElementById('copyBtn').addEventListener('click', async () => {
   const paidEntries = entries.filter(e => e.paid);

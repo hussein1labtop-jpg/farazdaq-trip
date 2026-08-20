@@ -124,6 +124,8 @@
     margin:0 0 10px;
   }
 </style>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -192,7 +194,18 @@
 </div>
 
 <script>
-const STORAGE_KEY = 'farazdaq-trip-registrations';
+const firebaseConfig = {
+  apiKey: "AIzaSyCSNh6M0D1tHVwJWaAcI7PN1HZGVlM3D3Y",
+  authDomain: "farazdaq-trip.firebaseapp.com",
+  databaseURL: "https://farazdaq-trip-default-rtdb.firebaseio.com",
+  projectId: "farazdaq-trip",
+  storageBucket: "farazdaq-trip.firebasestorage.app",
+  messagingSenderId: "622183270228",
+  appId: "1:622183270228:web:c24f78c49c6f70acb3aac1"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const regRef = db.ref('registrations');
 
 const nameInput = document.getElementById('studentName');
 const phoneInput = document.getElementById('studentPhone');
@@ -238,11 +251,14 @@ async function submitEntry(){
 
   let entries = [];
   try{
-    const result = await window.storage.get(STORAGE_KEY, true);
-    entries = result && result.value ? JSON.parse(result.value) : [];
+    const snapshot = await regRef.once('value');
+    const data = snapshot.val() || {};
+    entries = Object.values(data);
   }catch(e){
-    // key doesn't exist yet (first registration ever) - that's fine, start with empty list
-    entries = [];
+    showStatus('تعذر الاتصال، تأكد من الإنترنت وحاول مرة أخرى', 'dup');
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'تأكيد الحضور';
+    return;
   }
 
   try{
@@ -272,8 +288,7 @@ async function submitEntry(){
       return;
     }
 
-    entries.push({ name, phone, ts: Date.now(), paid: false });
-    await window.storage.set(STORAGE_KEY, JSON.stringify(entries), true);
+    await regRef.push({ name, phone, ts: Date.now(), paid: false });
 
     formView.style.display = 'none';
     successView.classList.add('show');
