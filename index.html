@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تسجيل الحضور - سفرة معهد الفرزدق</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Almarai:wght@300;400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0F2137;
+    --paper:#FAF6EC;
+    --amber:#D6A23C;
+    --amber-dark:#B5822A;
+    --teal:#3E6E67;
+    --ink:#1B2635;
+    --muted:#7A7264;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 15% -10%, #1a3350 0%, transparent 60%),
+      radial-gradient(1000px 700px at 110% 10%, #1a3a3a 0%, transparent 55%),
+      var(--navy);
+    min-height:100vh;
+    font-family:'Almarai', sans-serif;
+    color:var(--ink);
+    padding:36px 16px 64px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .wrap{max-width:460px; width:100%; margin:0 auto;}
+
+  .hero{text-align:center; color:var(--paper); margin-bottom:34px;}
+  .hero .eyebrow{
+    font-family:'Cairo', sans-serif; font-weight:700; letter-spacing:.5px;
+    color:var(--amber); font-size:14px; display:inline-flex; align-items:center; gap:8px; margin-bottom:10px;
+  }
+  .hero .eyebrow::before, .hero .eyebrow::after{content:""; width:26px; height:1px; background:var(--amber); opacity:.6;}
+  .hero h1{font-family:'Cairo', sans-serif; font-weight:900; font-size:clamp(26px, 6vw, 36px); margin:0 0 8px; line-height:1.25;}
+  .hero p{font-size:15px; color:#C9D2DE; margin:0;}
+
+  .ticket{
+    background:var(--paper); border-radius:18px; position:relative;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,.55); overflow:hidden;
+  }
+  .ticket-main{padding:28px 26px 26px;}
+  .ticket-main .label{font-family:'Cairo', sans-serif; font-weight:700; font-size:12px; color:var(--teal); letter-spacing:.4px; margin-bottom:4px; display:block;}
+  .ticket-main h2{font-family:'Cairo', sans-serif; font-size:20px; margin:0 0 20px; color:var(--navy);}
+  .field{margin-bottom:16px;}
+  .field label{display:block; font-size:13px; color:var(--muted); margin-bottom:6px; font-weight:700;}
+  .field input{
+    width:100%; padding:13px 14px; border-radius:10px; border:1.5px solid #E1D7BE;
+    background:#fff; font-family:'Almarai', sans-serif; font-size:15px; color:var(--ink);
+    outline:none; transition:border-color .15s, box-shadow .15s;
+  }
+  .field input:focus{border-color:var(--amber); box-shadow:0 0 0 3px rgba(214,162,60,.18);}
+  .field .err{color:#B3452F; font-size:12.5px; margin-top:5px; display:none;}
+  .field.invalid input{border-color:#B3452F;}
+  .field.invalid .err{display:block;}
+
+  .submit-btn{
+    width:100%; padding:14px; border:none; border-radius:10px; background:var(--amber);
+    color:var(--navy); font-family:'Cairo', sans-serif; font-weight:800; font-size:16px;
+    cursor:pointer; transition:background .15s, transform .1s; margin-top:4px;
+  }
+  .submit-btn:hover{background:var(--amber-dark);}
+  .submit-btn:active{transform:scale(.98);}
+  .submit-btn:disabled{opacity:.6; cursor:default;}
+
+  .status-msg{margin-top:14px; font-size:13.5px; text-align:center; font-weight:700; display:none;}
+  .status-msg.show{display:block;}
+  .status-msg.ok{color:var(--teal);}
+  .status-msg.dup{color:#B3452F;}
+
+  .perf{position:relative; height:0; border-top:2px dashed #D9CDA9; margin:0 26px;}
+  .perf::before, .perf::after{content:""; position:absolute; top:-11px; width:22px; height:22px; border-radius:50%; background:var(--navy);}
+  .perf::before{right:-33px;}
+  .perf::after{left:-33px;}
+
+  .note{padding:16px 26px 22px; font-size:13px; color:var(--muted); text-align:center; line-height:1.6;}
+
+  /* success screen */
+  .success{display:none; text-align:center; padding:40px 26px;}
+  .success.show{display:block;}
+  .success .icon{
+    width:56px; height:56px; border-radius:50%; background:var(--teal); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:28px; margin:0 auto 18px;
+  }
+  .success h3{font-family:'Cairo', sans-serif; color:var(--navy); margin:0 0 8px;}
+  .success p{color:var(--muted); font-size:14px; line-height:1.7; margin:0;}
+  .success .again{
+    margin-top:20px; background:none; border:1.5px solid var(--teal); color:var(--teal);
+    padding:9px 18px; border-radius:9px; font-family:'Cairo', sans-serif; font-weight:700; cursor:pointer;
+  }
+
+  footer{text-align:center; color:#5C6B7F; font-size:12px; margin-top:30px;}
+
+  .support{
+    text-align:center;
+    margin-top:20px;
+  }
+  .support a{
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    background:rgba(255,255,255,.06);
+    border:1.5px solid rgba(255,255,255,.16);
+    color:var(--paper);
+    text-decoration:none;
+    padding:10px 18px;
+    border-radius:30px;
+    font-family:'Cairo', sans-serif;
+    font-weight:700;
+    font-size:13px;
+    transition:background .15s;
+  }
+  .support a:hover{background:rgba(255,255,255,.14);}
+  .support p{
+    color:#9AA6B5;
+    font-size:12.5px;
+    margin:0 0 10px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <span class="eyebrow">معهد الفرزدق</span>
+    <h1>تسجيل الحضور لسفرة الطلاب</h1>
+    <p>سجّل اسمك ورقم هاتفك لتأكيد رغبتك بالحضور</p>
+  </div>
+
+  <div class="ticket">
+    <div id="formView">
+      <div class="ticket-main">
+        <span class="label">استمارة الحضور</span>
+        <h2>معلومات الطالب</h2>
+
+        <div class="field" id="nameField">
+          <label for="studentName">اسم الطالب الثلاثي</label>
+          <input type="text" id="studentName" placeholder="مثال: علي حسين محمد" autocomplete="off">
+          <div class="err">الرجاء إدخال الاسم</div>
+        </div>
+
+        <div class="field" id="phoneField">
+          <label for="studentPhone">رقم الهاتف</label>
+          <input type="tel" id="studentPhone" placeholder="07xxxxxxxxx" autocomplete="off" dir="ltr">
+          <div class="err">الرجاء إدخال رقم هاتف صحيح</div>
+        </div>
+
+        <button class="submit-btn" id="submitBtn">تأكيد الحضور</button>
+        <div class="status-msg" id="statusMsg"></div>
+      </div>
+
+      <div class="perf"></div>
+      <div class="note">تسجيلك لا يُعتبر مؤكداً إلا بعد تسديد قيمة السفرة نقداً لدى الإدارة</div>
+    </div>
+
+    <div class="success" id="successView">
+      <div class="icon">✓</div>
+      <h3>تم تسجيل حضورك</h3>
+      <p>احتفظ باسمك ورقمك — راجع الإدارة لتسديد قيمة السفرة نقداً وتأكيد مقعدك</p>
+      <button class="again" id="againBtn">تسجيل طالب آخر</button>
+      <div class="support" style="margin-top:22px;">
+        <a href="https://instagram.com/huha_2007" target="_blank" rel="noopener" style="background:var(--navy); border-color:var(--navy);">
+          واجهتك مشكلة بالتسجيل؟ تواصل ويه @huha_2007
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="support">
+    <a href="https://instagram.com/huha_2007" target="_blank" rel="noopener">
+      واجهتك مشكلة بالتسجيل؟ تواصل ويه @huha_2007
+    </a>
+  </div>
+
+  <footer>معهد الفرزدق</footer>
+</div>
+
+<script>
+const STORAGE_KEY = 'farazdaq-trip-registrations';
+
+const nameInput = document.getElementById('studentName');
+const phoneInput = document.getElementById('studentPhone');
+const nameField = document.getElementById('nameField');
+const phoneField = document.getElementById('phoneField');
+const submitBtn = document.getElementById('submitBtn');
+const statusMsg = document.getElementById('statusMsg');
+const formView = document.getElementById('formView');
+const successView = document.getElementById('successView');
+
+function normalizePhone(p){ return p.replace(/[^\d]/g, ''); }
+function isValidPhone(p){ const d = normalizePhone(p); return d.length >= 10 && d.length <= 13; }
+
+function showStatus(msg, cls){
+  statusMsg.textContent = msg;
+  statusMsg.className = 'status-msg show ' + cls;
+  setTimeout(() => { statusMsg.className = 'status-msg'; }, 3500);
+}
+
+async function submitEntry(){
+  const name = nameInput.value.trim();
+  const phone = phoneInput.value.trim();
+
+  let valid = true;
+  nameField.classList.remove('invalid');
+  phoneField.classList.remove('invalid');
+
+  if(name.length < 3){ nameField.classList.add('invalid'); valid = false; }
+  if(!isValidPhone(phone)){ phoneField.classList.add('invalid'); valid = false; }
+  if(!valid) return;
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = '...جاري التسجيل';
+
+  try{
+    const result = await window.storage.get(STORAGE_KEY, true);
+    let entries = result && result.value ? JSON.parse(result.value) : [];
+
+    const normalizedNew = normalizePhone(phone);
+    const dup = entries.find(e => normalizePhone(e.phone) === normalizedNew);
+    if(dup){
+      showStatus('هذا الرقم مسجّل مسبقاً باسم: ' + dup.name, 'dup');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'تأكيد الحضور';
+      return;
+    }
+
+    entries.push({ name, phone, ts: Date.now(), paid: false });
+    await window.storage.set(STORAGE_KEY, JSON.stringify(entries), true);
+
+    formView.style.display = 'none';
+    successView.classList.add('show');
+  }catch(e){
+    showStatus('حدث خطأ، حاول مرة أخرى', 'dup');
+  }
+
+  submitBtn.disabled = false;
+  submitBtn.textContent = 'تأكيد الحضور';
+}
+
+submitBtn.addEventListener('click', submitEntry);
+[nameInput, phoneInput].forEach(inp => {
+  inp.addEventListener('keydown', (e) => { if(e.key === 'Enter') submitEntry(); });
+});
+
+document.getElementById('againBtn').addEventListener('click', () => {
+  nameInput.value = '';
+  phoneInput.value = '';
+  successView.classList.remove('show');
+  formView.style.display = 'block';
+});
+</script>
+</body>
+</html>
