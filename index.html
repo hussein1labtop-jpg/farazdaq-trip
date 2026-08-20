@@ -160,10 +160,19 @@
       <div class="note">تسجيلك لا يُعتبر مؤكداً إلا بعد تسديد قيمة السفرة نقداً لدى الإدارة</div>
     </div>
 
+    <div class="success" id="statusView">
+      <div class="icon" id="statusIcon">✓</div>
+      <h3 id="statusTitle">أنت مسجّل مسبقاً</h3>
+      <p id="statusText"></p>
+      <button class="again" id="statusAgainBtn">رجوع لتسجيل طالب آخر</button>
+    </div>
+
     <div class="success" id="successView">
       <div class="icon">✓</div>
-      <h3>تم تسجيل حضورك</h3>
-      <p>احتفظ باسمك ورقمك — راجع الإدارة لتسديد قيمة السفرة نقداً وتأكيد مقعدك</p>
+      <h3>تم إرسال اسمك إلى الإدارة</h3>
+      <p style="color:#B3452F; font-weight:700;">
+        هذا لا يعني أنك ضمن الحضور. لتأكيد حضورك وإدراج اسمك مع الحضور يجب مراجعة الإدارة لدفع قيمة السفرة، والتي قدرها 10 آلاف دينار.
+      </p>
       <button class="again" id="againBtn">تسجيل طالب آخر</button>
       <div class="support" style="margin-top:22px;">
         <a href="https://instagram.com/huha_2007" target="_blank" rel="noopener" style="background:var(--navy); border-color:var(--navy);">
@@ -193,9 +202,18 @@ const submitBtn = document.getElementById('submitBtn');
 const statusMsg = document.getElementById('statusMsg');
 const formView = document.getElementById('formView');
 const successView = document.getElementById('successView');
+const statusView = document.getElementById('statusView');
+const statusIcon = document.getElementById('statusIcon');
+const statusTitle = document.getElementById('statusTitle');
+const statusText = document.getElementById('statusText');
 
 function normalizePhone(p){ return p.replace(/[^\d]/g, ''); }
 function isValidPhone(p){ const d = normalizePhone(p); return d.length >= 10 && d.length <= 13; }
+function escapeHtmlLocal(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
 
 function showStatus(msg, cls){
   statusMsg.textContent = msg;
@@ -218,16 +236,39 @@ async function submitEntry(){
   submitBtn.disabled = true;
   submitBtn.textContent = '...جاري التسجيل';
 
+  let entries = [];
   try{
     const result = await window.storage.get(STORAGE_KEY, true);
-    let entries = result && result.value ? JSON.parse(result.value) : [];
+    entries = result && result.value ? JSON.parse(result.value) : [];
+  }catch(e){
+    // key doesn't exist yet (first registration ever) - that's fine, start with empty list
+    entries = [];
+  }
 
+  try{
     const normalizedNew = normalizePhone(phone);
     const dup = entries.find(e => normalizePhone(e.phone) === normalizedNew);
     if(dup){
-      showStatus('هذا الرقم مسجّل مسبقاً باسم: ' + dup.name, 'dup');
       submitBtn.disabled = false;
       submitBtn.textContent = 'تأكيد الحضور';
+      formView.style.display = 'none';
+
+      if(dup.paid){
+        statusIcon.textContent = '✓';
+        statusIcon.style.background = 'var(--teal)';
+        statusTitle.textContent = 'حضورك مؤكّد';
+        statusText.innerHTML = `مسجّل باسم <strong>${escapeHtmlLocal(dup.name)}</strong> — تم تسديد قيمة السفرة وأنت ضمن قائمة الحضور نهائياً.`;
+        statusText.style.color = 'var(--teal)';
+        statusText.style.fontWeight = '700';
+      }else{
+        statusIcon.textContent = '⏳';
+        statusIcon.style.background = '#B3672F';
+        statusTitle.textContent = 'تسجيلك قيد الانتظار';
+        statusText.innerHTML = `مسجّل باسم <strong>${escapeHtmlLocal(dup.name)}</strong> — لكن هذا لا يعني أنك ضمن الحضور بعد. راجع الإدارة لدفع قيمة السفرة (10 آلاف دينار) لتأكيد مقعدك.`;
+        statusText.style.color = '#B3452F';
+        statusText.style.fontWeight = '700';
+      }
+      statusView.classList.add('show');
       return;
     }
 
@@ -253,6 +294,13 @@ document.getElementById('againBtn').addEventListener('click', () => {
   nameInput.value = '';
   phoneInput.value = '';
   successView.classList.remove('show');
+  formView.style.display = 'block';
+});
+
+document.getElementById('statusAgainBtn').addEventListener('click', () => {
+  nameInput.value = '';
+  phoneInput.value = '';
+  statusView.classList.remove('show');
   formView.style.display = 'block';
 });
 </script>
