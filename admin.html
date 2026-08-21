@@ -132,6 +132,104 @@
     opacity:0; pointer-events:none; transition:opacity .25s;
   }
   .toast.show{opacity:1;}
+
+  /* ---------- Print sheet (hidden on screen) ---------- */
+  #printSheet{display:none;}
+
+  @media print{
+    body *{visibility:hidden;}
+    #printSheet, #printSheet *{visibility:visible;}
+    #printSheet{
+      display:block;
+      position:absolute;
+      top:0; left:0;
+      width:100%;
+      background:#fff;
+      color:#000;
+      padding:14mm;
+      font-family:'Almarai', sans-serif;
+    }
+    @page{ size:A4; margin:10mm; }
+
+    #printSheet h2{
+      font-family:'Cairo', sans-serif;
+      font-size:20px;
+      margin:0 0 4px;
+      text-align:center;
+    }
+    #printSheet .print-sub{
+      text-align:center;
+      font-size:12px;
+      color:#555;
+      margin-bottom:18px;
+    }
+    #printSheet table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:13px;
+    }
+    #printSheet th, #printSheet td{
+      border:1px solid #999;
+      padding:8px 6px;
+      text-align:center;
+    }
+    #printSheet th{
+      background:#eee;
+      font-family:'Cairo', sans-serif;
+      font-weight:700;
+    }
+    #printSheet td.name-cell{ text-align:right; }
+    #printSheet td.notes-cell{ height:30px; }
+  }
+
+  /* ---------- Print ---------- */
+  #printArea{display:none;}
+  @media print{
+    @page{ size: A4; margin: 14mm; }
+    body *{ visibility:hidden; }
+    #printArea, #printArea *{ visibility:visible; }
+    #printArea{
+      display:block;
+      position:absolute;
+      top:0; left:0; width:100%;
+      background:#fff;
+    }
+    #printArea h2{
+      font-family:'Cairo', sans-serif;
+      font-size:18px;
+      margin:0 0 4px;
+      color:#000;
+    }
+    #printArea .print-sub{
+      font-size:12px;
+      color:#444;
+      margin:0 0 16px;
+      font-family:'Almarai', sans-serif;
+    }
+    #printArea table{
+      width:100%;
+      border-collapse:collapse;
+      font-family:'Almarai', sans-serif;
+    }
+    #printArea th, #printArea td{
+      border:1px solid #999;
+      padding:8px 10px;
+      text-align:right;
+      font-size:13px;
+      color:#000;
+    }
+    #printArea th{
+      background:#eee;
+      font-family:'Cairo', sans-serif;
+      font-weight:700;
+    }
+    #printArea td.seat-col, #printArea th.seat-col{
+      text-align:center;
+      width:40px;
+    }
+    #printArea td.phone-col{ direction:ltr; text-align:right; }
+    #printArea td.notes-col{ min-width:120px; }
+  }
 </style>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -176,6 +274,7 @@
 
     <div class="toolbar">
       <button id="copyBtn">نسخ قائمة المؤكدين</button>
+      <button id="printBtn">طباعة PDF</button>
       <button id="refreshBtn">تحديث</button>
     </div>
 
@@ -192,6 +291,38 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<div id="printSheet">
+  <h2>قائمة الحضور - سفرة معهد الفرزدق</h2>
+  <p class="print-sub" id="printDate"></p>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:8%;">ت</th>
+        <th style="width:37%;">اسم الطالب</th>
+        <th style="width:25%;">رقم الطالب</th>
+        <th style="width:30%;">ملاحظات</th>
+      </tr>
+    </thead>
+    <tbody id="printTableBody"></tbody>
+  </table>
+</div>
+
+<div id="printArea">
+  <h2>قائمة الحضور - سفرة معهد الفرزدق</h2>
+  <p class="print-sub" id="printMeta"></p>
+  <table>
+    <thead>
+      <tr>
+        <th class="seat-col">ت</th>
+        <th>اسم الطالب</th>
+        <th>رقم الطالب</th>
+        <th>ملاحظات</th>
+      </tr>
+    </thead>
+    <tbody id="printTableBody"></tbody>
+  </table>
+</div>
 
 <script>
 const firebaseConfig = {
@@ -335,6 +466,53 @@ document.querySelectorAll('.filters button').forEach(btn => {
 
 document.getElementById('refreshBtn').addEventListener('click', () => {
   showToast('القائمة تتحدث تلقائياً');
+});
+
+document.getElementById('printBtn').addEventListener('click', () => {
+  const paidEntries = entries.filter(e => e.paid);
+  if(paidEntries.length === 0){
+    showToast('لا يوجد مسجلون مؤكدو الدفع بعد للطباعة');
+    return;
+  }
+
+  document.getElementById('printMeta').textContent =
+    `عدد الطلاب المؤكدين: ${paidEntries.length} — تاريخ الطباعة: ${new Date().toLocaleDateString('ar-IQ')}`;
+
+  const rows = paidEntries.map((e, i) => `
+    <tr>
+      <td class="seat-col">${i+1}</td>
+      <td>${escapeHtml(e.name)}</td>
+      <td class="phone-col">${escapeHtml(e.phone)}</td>
+      <td class="notes-col"></td>
+    </tr>
+  `).join('');
+
+  document.getElementById('printTableBody').innerHTML = rows;
+
+  window.print();
+});
+
+document.getElementById('printBtn').addEventListener('click', () => {
+  const paidEntries = entries.filter(e => e.paid);
+  if(paidEntries.length === 0){
+    showToast('لا يوجد مسجلون مؤكدو الدفع بعد');
+    return;
+  }
+  const printDate = document.getElementById('printDate');
+  const today = new Date();
+  printDate.textContent = 'عدد الطلاب: ' + paidEntries.length + '   -   تاريخ الطباعة: ' + today.toLocaleDateString('ar-IQ');
+
+  const body = paidEntries.map((e, i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td class="name-cell">${escapeHtml(e.name)}</td>
+      <td>${escapeHtml(e.phone)}</td>
+      <td class="notes-cell"></td>
+    </tr>
+  `).join('');
+  document.getElementById('printTableBody').innerHTML = body;
+
+  window.print();
 });
 
 document.getElementById('copyBtn').addEventListener('click', async () => {
