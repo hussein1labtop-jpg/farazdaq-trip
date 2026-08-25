@@ -182,6 +182,17 @@
         </a>
       </div>
     </div>
+
+    <div class="success" id="closedView">
+      <div class="icon" style="background:#B3452F;">✕</div>
+      <h3>التسجيل متوقف حالياً</h3>
+      <p>الإدارة أوقفت استقبال أسماء جديدة مؤقتاً. راجع الإدارة مباشرة أو تابع الإعلانات لمعرفة موعد إعادة فتح التسجيل.</p>
+      <div class="support" style="margin-top:22px;">
+        <a href="https://instagram.com/huha_2007" target="_blank" rel="noopener" style="background:var(--navy); border-color:var(--navy);">
+          واجهتك مشكلة؟ تواصل ويه @huha_2007
+        </a>
+      </div>
+    </div>
   </div>
 
   <div class="support">
@@ -206,6 +217,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const regRef = db.ref('registrations');
+const settingsRef = db.ref('settings');
 
 const nameInput = document.getElementById('studentName');
 const phoneInput = document.getElementById('studentPhone');
@@ -216,9 +228,27 @@ const statusMsg = document.getElementById('statusMsg');
 const formView = document.getElementById('formView');
 const successView = document.getElementById('successView');
 const statusView = document.getElementById('statusView');
+const closedView = document.getElementById('closedView');
 const statusIcon = document.getElementById('statusIcon');
 const statusTitle = document.getElementById('statusTitle');
 const statusText = document.getElementById('statusText');
+
+let registrationOpen = true;
+settingsRef.child('registrationOpen').on('value', (snapshot) => {
+  const val = snapshot.val();
+  registrationOpen = (val === null) ? true : val; // default open if never set
+  if(!registrationOpen){
+    formView.style.display = 'none';
+    successView.classList.remove('show');
+    statusView.classList.remove('show');
+    closedView.classList.add('show');
+  }else{
+    closedView.classList.remove('show');
+    if(!successView.classList.contains('show') && !statusView.classList.contains('show')){
+      formView.style.display = 'block';
+    }
+  }
+});
 
 function normalizePhone(p){ return p.replace(/[^\d]/g, ''); }
 function isValidPhone(p){ const d = normalizePhone(p); return d.length >= 10 && d.length <= 13; }
@@ -235,6 +265,10 @@ function showStatus(msg, cls){
 }
 
 async function submitEntry(){
+  if(!registrationOpen){
+    showStatus('التسجيل متوقف حالياً', 'dup');
+    return;
+  }
   const name = nameInput.value.trim();
   const phone = phoneInput.value.trim();
 
